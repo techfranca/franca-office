@@ -4,7 +4,7 @@
 
 import { useStore } from "@/lib/store";
 import { ROOMS, USERS, STATUS, UserId } from "@/lib/constants";
-import { LogOut, Globe } from "lucide-react"; // Adicionei o Globe
+import { LogOut, Globe } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useRouter } from "next/navigation";
 import StatusSelector from "./StatusSelector";
@@ -13,6 +13,15 @@ import { usePresence } from "@/lib/usePresence";
 interface SidebarProps {
   onRoomSelect: (roomId: string) => void;
 }
+
+// ✨ NOVO: Mapeamento de iniciais personalizadas
+const USER_INITIALS: Record<UserId, string> = {
+  gabriel: "GA",
+  bruna: "B",
+  guilherme: "GU",
+  leonardo: "L",
+  davidson: "D",
+};
 
 export default function Sidebar({ onRoomSelect }: SidebarProps) {
   const router = useRouter();
@@ -104,34 +113,27 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                     {room.name}
                   </span>
 
-                  {/* Membros online (CORRIGIDO PARA EXIBIR ÍCONES) */}
+                  {/* ✨ ATUALIZADO: Membros online com INICIAIS */}
                   {hasUsers && (
                     <div className="flex items-center -space-x-2">
                       {usersInRoom.slice(0, 3).map((presence) => {
                         const userStatus = STATUS[presence.status as keyof typeof STATUS] || STATUS.available;
                         
-                        // Busca o ícone do usuário baseado no ID
-                        const userConfig = USERS[presence.userId as UserId];
-                        const UserPresenceIcon = userConfig 
-                          ? (Icons[userConfig.icon as keyof typeof Icons] as any) 
-                          : null;
+                        // ✨ NOVO: Busca as iniciais personalizadas
+                        const userInitials = USER_INITIALS[presence.userId as UserId] || presence.userName.charAt(0);
 
                         return (
                           <div
                             key={presence.userId}
-                            className={`relative w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 overflow-hidden ${
+                            className={`relative w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                               isActive 
                                 ? "border-franca-green bg-franca-navy text-franca-green" 
                                 : "border-franca-navy bg-franca-green text-franca-navy"
                             }`}
                             title={`${presence.userName} - ${userStatus.label}`}
                           >
-                            {/* Se encontrar o ícone, renderiza ele, senão usa a inicial */}
-                            {UserPresenceIcon ? (
-                              <UserPresenceIcon className="w-3 h-3" />
-                            ) : (
-                              presence.userName.charAt(0)
-                            )}
+                            {/* ✨ NOVO: Exibe INICIAIS ao invés de ícone */}
+                            {userInitials}
                             
                             {/* Indicador de status */}
                             <span
@@ -142,7 +144,7 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                         );
                       })}
                       {usersInRoom.length > 3 && (
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                           isActive 
                             ? "border-franca-green bg-franca-navy text-franca-green" 
                             : "border-franca-navy bg-franca-green text-franca-navy"

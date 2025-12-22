@@ -37,9 +37,9 @@ export default function StatusSelector() {
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: currentStatus.color }}
         ></span>
-        <span className="font-medium text-sm">{currentStatus.label}</span>
+        <span className="font-medium text-sm text-gray-700">{currentStatus.label}</span>
         <ChevronDown
-          className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-gray-700 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
