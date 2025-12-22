@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 import { JITSI_DOMAIN } from "@/lib/constants";
 import { useStore } from "@/lib/store";
+import RoomLockButton from "./RoomLockButton";
 
 interface VideoRoomProps {
   roomId: string;
@@ -22,6 +23,9 @@ export default function VideoRoom({ roomId, roomName, onLeave }: VideoRoomProps)
   const jitsiContainerRef = useRef<HTMLDivElement>(null);
   const jitsiInstance = useRef<any>(null);
   const currentUser = useStore((state) => state.currentUser);
+
+  // ✨ NOVO: Verificar se é sala privada
+  const isPrivateRoom = roomId === "reuniao-privada";
 
   useEffect(() => {
     // Carregar script do Jitsi
@@ -109,7 +113,6 @@ export default function VideoRoom({ roomId, roomName, onLeave }: VideoRoomProps)
           displayName: currentUser.name,
           email: `${currentUser.id}@francaassessoria.com`,
         },
-        // Configurações JWT (não usadas mas podem ajudar)
         jwt: undefined,
       };
 
@@ -118,12 +121,11 @@ export default function VideoRoom({ roomId, roomName, onLeave }: VideoRoomProps)
         options
       );
 
-      // Forçar entrada automática (bypass prejoin)
+      // Event listeners
       jitsiInstance.current.addEventListener("readyToClose", () => {
         onLeave();
       });
 
-      // Event listeners
       jitsiInstance.current.addEventListener("videoConferenceLeft", () => {
         onLeave();
       });
@@ -142,9 +144,19 @@ export default function VideoRoom({ roomId, roomName, onLeave }: VideoRoomProps)
         jitsiInstance.current = null;
       }
     };
-  }, [roomId, currentUser, onLeave]);
+  }, [roomId, currentUser, onLeave, roomName]);
 
   return (
-    <div ref={jitsiContainerRef} className="w-full h-full" id="jitsi-container" />
+    <div className="relative w-full h-full">
+      {/* ✨ NOVO: Botão de trava (só na sala privada) */}
+      {isPrivateRoom && (
+        <div className="absolute top-4 right-4 z-50">
+          <RoomLockButton roomId={roomId} />
+        </div>
+      )}
+
+      {/* Container do Jitsi */}
+      <div ref={jitsiContainerRef} className="w-full h-full" id="jitsi-container" />
+    </div>
   );
 }

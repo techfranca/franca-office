@@ -6,25 +6,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { ROOMS } from "@/lib/constants";
+import { useRoomLock } from "@/lib/useRoomLock";
 import Sidebar from "./Sidebar";
 import VideoRoom from "./VideoRoom";
-import PrivateRoomModal from "./PrivateRoomModal";
+import { X, Lock } from "lucide-react";
 
 export default function Office() {
   const router = useRouter();
-  const {
-    currentUser,
-    currentRoom,
-    joinRoom,
-    leaveRoom,
-    privateRoomLock,
-    lockPrivateRoom,
-    unlockPrivateRoom,
-    verifyPrivateRoomPassword,
-  } = useStore();
-
-  const [showPrivateModal, setShowPrivateModal] = useState(false);
-  const [pendingRoom, setPendingRoom] = useState<string | null>(null);
+  const { currentUser, currentRoom, joinRoom, leaveRoom } = useStore();
+  
+  // ✨ NOVO: Estado para verificar trava da sala privada
+  const [showLockedModal, setShowLockedModal] = useState(false);
+  const [lockedByName, setLockedByName] = useState("");
+  
+  // Hook para verificar se sala privada está trancada
+  const { lockState: privateRoomLock } = useRoomLock("reuniao-privada");
 
   // Redirecionar se não estiver logado
   if (!currentUser) {
@@ -36,37 +32,22 @@ export default function Office() {
     const room = ROOMS.find((r) => r.id === roomId);
     if (!room) return;
 
-    // Se for sala privada e estiver trancada
+    // ✨ NOVO: Verificar se é sala privada e está trancada
     if (room.isPrivate && roomId === "reuniao-privada") {
-      if (privateRoomLock.isLocked) {
-        setPendingRoom(roomId);
-        setShowPrivateModal(true);
+      if (privateRoomLock.locked) {
+        // Mostrar modal informando que está trancada
+        setLockedByName(privateRoomLock.lockedByName || "alguém");
+        setShowLockedModal(true);
         return;
       }
     }
 
+    // Entrar na sala normalmente
     joinRoom(roomId as any);
   };
 
-  const handleLockPrivateRoom = (password: string) => {
-    lockPrivateRoom(password);
-    setShowPrivateModal(false);
-    if (pendingRoom) {
-      joinRoom(pendingRoom as any);
-      setPendingRoom(null);
-    }
-  };
-
-  const handleUnlockPrivateRoom = (password: string) => {
-    if (verifyPrivateRoomPassword(password)) {
-      setShowPrivateModal(false);
-      if (pendingRoom) {
-        joinRoom(pendingRoom as any);
-        setPendingRoom(null);
-      }
-    } else {
-      alert("Senha incorreta!");
-    }
+  const handleLeaveRoom = () => {
+    leaveRoom();
   };
 
   return (
@@ -81,7 +62,7 @@ export default function Office() {
           <VideoRoom
             roomId={currentRoom}
             roomName={ROOMS.find((r) => r.id === currentRoom)?.name || "Sala"}
-            onLeave={leaveRoom}
+            onLeave={handleLeaveRoom}
           />
         ) : (
           // Tela inicial vazia
@@ -113,17 +94,51 @@ export default function Office() {
         )}
       </div>
 
-      {/* Modal Sala Privada */}
-      <PrivateRoomModal
-        isOpen={showPrivateModal}
-        onClose={() => {
-          setShowPrivateModal(false);
-          setPendingRoom(null);
-        }}
-        onUnlock={handleUnlockPrivateRoom}
-        isLocked={privateRoomLock.isLocked}
-        onLock={handleLockPrivateRoom}
-      />
+      {/* ✨ NOVO: Modal Sala Trancada */}
+      {showLockedModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center">
+                  <Lock className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Sala Trancada
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Não é possível entrar
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLockedModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 dark:text-gray-300">
+                A <strong>Sala de Reunião Privada</strong> está trancada por{" "}
+                <strong className="text-red-600 dark:text-red-400">{lockedByName}</strong>.
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Aguarde até que a sala seja destrancada para entrar.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowLockedModal(false)}
+              className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors font-medium"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

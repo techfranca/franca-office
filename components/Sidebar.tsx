@@ -4,17 +4,18 @@
 
 import { useStore } from "@/lib/store";
 import { ROOMS, USERS, STATUS, UserId } from "@/lib/constants";
-import { LogOut, Globe } from "lucide-react";
+import { LogOut, Globe, Lock } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useRouter } from "next/navigation";
 import StatusSelector from "./StatusSelector";
 import { usePresence } from "@/lib/usePresence";
+import { useRoomLock } from "@/lib/useRoomLock"; // ✨ NOVO
 
 interface SidebarProps {
   onRoomSelect: (roomId: string) => void;
 }
 
-// ✨ NOVO: Mapeamento de iniciais personalizadas
+// Mapeamento de iniciais personalizadas
 const USER_INITIALS: Record<UserId, string> = {
   gabriel: "GA",
   bruna: "B",
@@ -27,6 +28,9 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
   const router = useRouter();
   const { currentUser, currentRoom, logout } = useStore();
   const { presenceByRoom } = usePresence();
+  
+  // ✨ NOVO: Hook para verificar se sala privada está trancada
+  const { lockState: privateRoomLock } = useRoomLock("reuniao-privada");
 
   const handleLogout = () => {
     if (confirm("Deseja realmente sair do Franca Office?")) {
@@ -93,33 +97,53 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
               const usersInRoom = presenceByRoom[room.id] || [];
               const hasUsers = usersInRoom.length > 0;
               
+              // ✨ NOVO: Verificar se sala está trancada
+              const isPrivateRoom = room.isPrivate && room.id === "reuniao-privada";
+              const isLocked = isPrivateRoom && privateRoomLock.locked;
+              const isDisabled = isLocked;
+              
               return (
                 <button
                   key={room.id}
-                  onClick={() => onRoomSelect(room.id)}
+                  onClick={() => !isDisabled && onRoomSelect(room.id)}
+                  disabled={isDisabled}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
                     isActive
                       ? "bg-franca-green text-franca-navy"
+                      : isDisabled
+                      ? "opacity-50 cursor-not-allowed"
                       : "hover:bg-white/5 text-white/80 hover:text-white"
                   }`}
+                  title={
+                    isLocked 
+                      ? `Sala trancada por ${privateRoomLock.lockedByName}` 
+                      : room.description
+                  }
                 >
                   {/* Ícone da Sala */}
                   <div className={`relative ${isActive ? "" : "text-white/60 group-hover:text-white"}`}>
-                    {RoomIcon && <RoomIcon className="w-5 h-5" />}
+                    {/* ✨ NOVO: Mostrar cadeado se trancada */}
+                    {isLocked ? (
+                      <Lock className="w-5 h-5 text-red-400" />
+                    ) : (
+                      RoomIcon && <RoomIcon className="w-5 h-5" />
+                    )}
                   </div>
 
                   {/* Nome da sala */}
                   <span className="flex-1 text-left text-sm font-medium truncate">
                     {room.name}
+                    {/* ✨ NOVO: Badge de trancada */}
+                    {isLocked && (
+                      <span className="ml-2 text-xs text-red-400">🔒</span>
+                    )}
                   </span>
 
-                  {/* ✨ ATUALIZADO: Membros online com INICIAIS */}
-                  {hasUsers && (
+                  {/* Membros online com INICIAIS */}
+                  {hasUsers && !isLocked && (
                     <div className="flex items-center -space-x-2">
                       {usersInRoom.slice(0, 3).map((presence) => {
                         const userStatus = STATUS[presence.status as keyof typeof STATUS] || STATUS.available;
-                        
-                        // ✨ NOVO: Busca as iniciais personalizadas
                         const userInitials = USER_INITIALS[presence.userId as UserId] || presence.userName.charAt(0);
 
                         return (
@@ -132,7 +156,6 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                             }`}
                             title={`${presence.userName} - ${userStatus.label}`}
                           >
-                            {/* ✨ NOVO: Exibe INICIAIS ao invés de ícone */}
                             {userInitials}
                             
                             {/* Indicador de status */}
@@ -156,7 +179,7 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                   )}
 
                   {/* Badge de sala atual */}
-                  {isActive && (
+                  {isActive && !isLocked && (
                     <span className="text-xs font-bold">→</span>
                   )}
                 </button>
