@@ -3,8 +3,8 @@
 "use client";
 
 import { useStore } from "@/lib/store";
-import { ROOMS, USERS, STATUS } from "@/lib/constants";
-import { LogOut } from "lucide-react";
+import { ROOMS, USERS, STATUS, UserId } from "@/lib/constants";
+import { LogOut, Globe } from "lucide-react"; // Adicionei o Globe
 import * as Icons from "lucide-react";
 import { useRouter } from "next/navigation";
 import StatusSelector from "./StatusSelector";
@@ -24,6 +24,10 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
       logout();
       router.push("/login");
     }
+  };
+
+  const handleOpenFrancaverso = () => {
+    window.open("https://francaverso.vercel.app/", "_blank");
   };
 
   if (!currentUser) return null;
@@ -90,7 +94,7 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                       : "hover:bg-white/5 text-white/80 hover:text-white"
                   }`}
                 >
-                  {/* Ícone */}
+                  {/* Ícone da Sala */}
                   <div className={`relative ${isActive ? "" : "text-white/60 group-hover:text-white"}`}>
                     {RoomIcon && <RoomIcon className="w-5 h-5" />}
                   </div>
@@ -100,22 +104,35 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                     {room.name}
                   </span>
 
-                  {/* Membros online */}
+                  {/* Membros online (CORRIGIDO PARA EXIBIR ÍCONES) */}
                   {hasUsers && (
                     <div className="flex items-center -space-x-2">
                       {usersInRoom.slice(0, 3).map((presence) => {
                         const userStatus = STATUS[presence.status as keyof typeof STATUS] || STATUS.available;
+                        
+                        // Busca o ícone do usuário baseado no ID
+                        const userConfig = USERS[presence.userId as UserId];
+                        const UserPresenceIcon = userConfig 
+                          ? (Icons[userConfig.icon as keyof typeof Icons] as any) 
+                          : null;
+
                         return (
                           <div
                             key={presence.userId}
-                            className={`relative w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                            className={`relative w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 overflow-hidden ${
                               isActive 
                                 ? "border-franca-green bg-franca-navy text-franca-green" 
                                 : "border-franca-navy bg-franca-green text-franca-navy"
                             }`}
                             title={`${presence.userName} - ${userStatus.label}`}
                           >
-                            {presence.userName.charAt(0)}
+                            {/* Se encontrar o ícone, renderiza ele, senão usa a inicial */}
+                            {UserPresenceIcon ? (
+                              <UserPresenceIcon className="w-3 h-3" />
+                            ) : (
+                              presence.userName.charAt(0)
+                            )}
+                            
                             {/* Indicador de status */}
                             <span
                               className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-franca-navy"
@@ -147,8 +164,18 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
         </div>
       </div>
 
-      {/* Footer com logout */}
-      <div className="p-4 border-t border-white/10">
+      {/* Footer com Francaverso e Logout */}
+      <div className="p-4 border-t border-white/10 space-y-2">
+        {/* Botão Francaverso */}
+        <button
+          onClick={handleOpenFrancaverso}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all text-sm font-medium border border-white/10 hover:border-white/30"
+        >
+          <Globe className="w-4 h-4" />
+          <span>Francaverso</span>
+        </button>
+
+        {/* Botão Sair */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all text-sm font-medium"
