@@ -17,7 +17,16 @@ const PASSWORD_HASHES: Record<string, string | undefined> = {
 
 export async function POST(req: Request) {
   try {
-    const { username, password } = await req.json();
+    const body = await req.json();
+
+    // Normaliza username (protege contra maiúsculas / espaços)
+    const username =
+      typeof body.username === "string"
+        ? body.username.trim().toLowerCase()
+        : "";
+
+    const password =
+      typeof body.password === "string" ? body.password : "";
 
     if (!username || !password) {
       return NextResponse.json(
@@ -64,7 +73,7 @@ export async function POST(req: Request) {
         role: user.role,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Erro interno ao autenticar" },
       { status: 500 }
