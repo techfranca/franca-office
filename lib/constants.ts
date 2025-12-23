@@ -5,36 +5,36 @@ export const JITSI_DOMAIN = process.env.NEXT_PUBLIC_JITSI_DOMAIN || "meet.franca
 export const USERS = {
   gabriel: {
     name: "Gabriel",
-    password: "ceo@franca",
     role: "CEO",
+    hasPassword: true,
     icon: "Target",
     color: "#7DE08D"
   },
   bruna: {
     name: "Bruna",
-    password: "socialmedia@franca",
     role: "Social Media Manager",
+    hasPassword: true,
     icon: "Instagram",
     color: "#598F74"
   },
   guilherme: {
     name: "Guilherme",
-    password: "design@franca",
     role: "Design Lead",
+    hasPassword: true,
     icon: "Palette",
     color: "#7DE08D"
   },
   leonardo: {
     name: "Leonardo",
-    password: "trafego@franca",
     role: " Gestor de Tráfego",
+    hasPassword: true,
     icon: "TrendingUp",
     color: "#598F74"
   },
   davidson: {
     name: "Davidson",
-    password: "tech@franca",
     role: "Tech Lead",
+    hasPassword: true,
     icon: "Code",
     color: "#7DE08D"
   }

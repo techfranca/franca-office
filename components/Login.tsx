@@ -1,5 +1,3 @@
-// components/Login.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -7,17 +5,17 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { USERS, UserId } from "@/lib/constants";
 import { LogIn, AlertCircle } from "lucide-react";
-import * as Icons from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
   const setCurrentUser = useStore((state) => state.setCurrentUser);
+
   const [selectedUser, setSelectedUser] = useState<UserId | "">("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
@@ -28,28 +26,44 @@ export default function Login() {
       return;
     }
 
-    const user = USERS[selectedUser];
-    
-    if (password !== user.password) {
-      setError("Senha incorreta");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: selectedUser,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data?.error || "Senha incorreta");
+        setIsLoading(false);
+        return;
+      }
+
+      const user = USERS[selectedUser];
+
+      setCurrentUser({
+        id: selectedUser,
+        name: user.name,
+        role: user.role,
+        avatar: user.icon,
+        currentRoom: null,
+        status: "available",
+        lastSeen: new Date(),
+      });
+
+      setTimeout(() => {
+        router.push("/office");
+      }, 300);
+    } catch {
+      setError("Erro inesperado ao autenticar");
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Login bem-sucedido
-    setCurrentUser({
-      id: selectedUser,
-      name: user.name,
-      role: user.role,
-      avatar: user.icon,
-      currentRoom: null,
-      status: "available",
-      lastSeen: new Date(),
-    });
-
-    setTimeout(() => {
-      router.push("/office");
-    }, 500);
   };
 
   return (
@@ -64,13 +78,19 @@ export default function Login() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-32 h-32 mb-4">
-              <img 
-                src="/logo.png" 
-                alt="Franca" 
+              <img
+                src="/logo.png"
+                alt="Franca"
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.parentElement!.innerHTML = '<div class="w-10 h-10 text-franca-navy"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></div>';
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.parentElement!.innerHTML = `
+                    <div class="w-10 h-10 text-franca-navy">
+                      <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                      </svg>
+                    </div>`;
                 }}
               />
             </div>
@@ -82,7 +102,7 @@ export default function Login() {
 
           {/* Formulário */}
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Seletor de Usuário */}
+            {/* Usuário */}
             <div>
               <label className="block text-sm font-semibold text-franca-navy mb-2">
                 Selecione seu usuário
@@ -97,13 +117,11 @@ export default function Login() {
                 required
               >
                 <option value="">Escolha...</option>
-                {Object.entries(USERS).map(([id, user]) => {
-                  return (
-                    <option key={id} value={id}>
-                      {user.name} - {user.role}
-                    </option>
-                  );
-                })}
+                {Object.entries(USERS).map(([id, user]) => (
+                  <option key={id} value={id}>
+                    {user.name} - {user.role}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -125,7 +143,7 @@ export default function Login() {
               />
             </div>
 
-            {/* Mensagem de erro */}
+            {/* Erro */}
             {error && (
               <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm animate-slide-in">
                 <AlertCircle className="w-5 h-5" />
@@ -133,7 +151,7 @@ export default function Login() {
               </div>
             )}
 
-            {/* Botão de login */}
+            {/* Botão */}
             <button
               type="submit"
               disabled={isLoading}
@@ -156,7 +174,9 @@ export default function Login() {
           {/* Rodapé */}
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
-              <span className="font-semibold text-franca-green">Franca Office v2.0</span>
+              <span className="font-semibold text-franca-green">
+                Franca Office v2.0
+              </span>
               <br />
               Hub de Comunicação
             </p>
@@ -165,7 +185,8 @@ export default function Login() {
 
         {/* Créditos */}
         <p className="text-center mt-6 text-sm text-franca-green/70">
-           Desenvolvido pela equipe de tecnologia Franca • Todos os direitos reservados • 2025
+          Desenvolvido pela equipe de tecnologia Franca • Todos os direitos
+          reservados • 2025
         </p>
       </div>
     </div>
