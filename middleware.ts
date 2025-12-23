@@ -1,19 +1,26 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
-  const session = req.cookies.get("franca_session");
-  const { pathname } = req.nextUrl;
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const token = request.cookies.get("auth-token");
 
-  const isAuthRoute = pathname.startsWith("/login");
-  const isProtectedRoute = pathname.startsWith("/office");
-
-  if (isProtectedRoute && !session) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  // 🔹 Rotas públicas
+  if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
   }
 
-  if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL("/office", req.url));
+  // 🔹 Tentando acessar área protegida sem token
+  if (!token && pathname.startsWith("/office")) {
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // 🔹 Usuário logado tentando acessar login
+  if (token && pathname === "/login") {
+    const officeUrl = new URL("/office", request.url);
+    return NextResponse.redirect(officeUrl);
   }
 
   return NextResponse.next();
