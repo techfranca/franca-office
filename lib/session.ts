@@ -1,20 +1,24 @@
 import { cookies } from "next/headers";
 
-const SESSION_COOKIE = "franca_session";
+const SESSION_KEY = "franca-office-session";
 
-export function createSession(userId: string) {
-  cookies().set(SESSION_COOKIE, userId, {
+export function createSession(username: string) {
+  cookies().set(SESSION_KEY, username, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+}
+
+export function destroySession() {
+  cookies().set(SESSION_KEY, "", {
+    httpOnly: true,
+    expires: new Date(0),
     path: "/",
   });
 }
 
 export function getSession() {
-  return cookies().get(SESSION_COOKIE)?.value;
-}
-
-export function destroySession() {
-  cookies().delete(SESSION_COOKIE);
+  return cookies().get(SESSION_KEY)?.value ?? null;
 }
