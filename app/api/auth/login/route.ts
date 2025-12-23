@@ -3,18 +3,6 @@ import bcrypt from "bcryptjs";
 import { USERS_DB } from "@/lib/users";
 import { createSession } from "@/lib/session";
 
-/**
- * Mapeamento dos hashes vindos do .env
- * Nunca expor isso no client
- */
-const PASSWORD_HASHES: Record<string, string | undefined> = {
-  gabriel: process.env.USER_GABRIEL_PASSWORD_HASH,
-  bruna: process.env.USER_BRUNA_PASSWORD_HASH,
-  guilherme: process.env.USER_GUILHERME_PASSWORD_HASH,
-  leonardo: process.env.USER_LEONARDO_PASSWORD_HASH,
-  davidson: process.env.USER_DAVIDSON_PASSWORD_HASH,
-};
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -44,16 +32,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const passwordHash = PASSWORD_HASHES[username];
-
-    if (!passwordHash) {
-      return NextResponse.json(
-        { error: "Credencial não configurada no servidor" },
-        { status: 500 }
-      );
-    }
-
-    const isValid = await bcrypt.compare(password, passwordHash);
+    // ✅ Validação correta usando o hash do USERS_DB
+    const isValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isValid) {
       return NextResponse.json(
@@ -62,7 +42,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cria sessão (cookie / server-side)
+    // ✅ Cria sessão segura (cookie httpOnly)
     createSession(username);
 
     return NextResponse.json({
@@ -73,7 +53,8 @@ export async function POST(req: Request) {
         role: user.role,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
     return NextResponse.json(
       { error: "Erro interno ao autenticar" },
       { status: 500 }
