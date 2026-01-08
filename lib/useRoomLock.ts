@@ -24,7 +24,7 @@ export function useRoomLock(roomId: string) {
 
   // Escutar estado da trava em tempo real
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !database) return;
 
     const lockRef = ref(database, `rooms/${roomId}`);
 
@@ -53,7 +53,7 @@ export function useRoomLock(roomId: string) {
 
   // Trancar sala
   const lockRoom = async () => {
-    if (!currentUser || !roomId || isLocking) return;
+    if (!currentUser || !roomId || isLocking || !database) return;
 
     setIsLocking(true);
     try {
@@ -73,7 +73,7 @@ export function useRoomLock(roomId: string) {
 
   // Destrancar sala
   const unlockRoom = async () => {
-    if (!currentUser || !roomId || isLocking) return;
+    if (!currentUser || !roomId || isLocking || !database) return;
 
     // Só pode destrancar se foi você quem trancou
     if (lockState.lockedBy !== currentUser.id) {
