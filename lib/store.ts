@@ -2,20 +2,22 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserId, RoomId, UserStatus } from './constants';
+import type { RoomId, UserStatus } from './constants';
 
-interface User {
-  id: UserId;
+export interface User {
+  id: string;
   name: string;
   role: string;
-  avatar: string;
+  avatar: string;          // Ícone do Lucide
+  photoURL?: string;       // Foto do Google (opcional)
+  email?: string;          // Email do Google
   currentRoom: RoomId | null;
   status: UserStatus;
   lastSeen: Date;
 }
 
 interface RoomPresence {
-  [roomId: string]: UserId[];
+  [roomId: string]: string[];
 }
 
 interface PrivateRoomLock {
@@ -39,8 +41,8 @@ interface Store {
 
   // Room presence
   roomPresence: RoomPresence;
-  updateRoomPresence: (roomId: RoomId, users: UserId[]) => void;
-  getUsersInRoom: (roomId: RoomId) => UserId[];
+  updateRoomPresence: (roomId: RoomId, users: string[]) => void;
+  getUsersInRoom: (roomId: RoomId) => string[];
 
   // Private room
   privateRoomLock: PrivateRoomLock;
@@ -48,7 +50,7 @@ interface Store {
   unlockPrivateRoom: () => void;
   verifyPrivateRoomPassword: (password: string) => boolean;
 
-  // Online users (simulação - em produção usaria WebSocket)
+  // Online users
   onlineUsers: User[];
   updateOnlineUsers: (users: User[]) => void;
 }

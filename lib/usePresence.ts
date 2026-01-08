@@ -12,7 +12,7 @@ export function usePresence() {
 
   // Atualizar presença quando entrar/sair de sala
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !database) return;
 
     const userPresenceRef = ref(database, `presence/${currentUser.id}`);
 
@@ -22,6 +22,7 @@ export function usePresence() {
         const presenceData: UserPresence = {
           userId: currentUser.id,
           userName: currentUser.name,
+          userPhoto: currentUser.photoURL || undefined,
           roomId: currentRoom,
           status: currentUser.status,
           timestamp: Date.now(),
@@ -45,8 +46,28 @@ export function usePresence() {
     };
   }, [currentUser, currentRoom]);
 
+  // Atualizar presença quando o status mudar
+  useEffect(() => {
+    if (!currentUser || !currentRoom || !database) return;
+
+    const userPresenceRef = ref(database, `presence/${currentUser.id}`);
+
+    const presenceData: UserPresence = {
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userPhoto: currentUser.photoURL || undefined,
+      roomId: currentRoom,
+      status: currentUser.status,
+      timestamp: Date.now(),
+    };
+
+    set(userPresenceRef, presenceData);
+  }, [currentUser?.status]);
+
   // Escutar todas as presenças em tempo real
   useEffect(() => {
+    if (!database) return;
+
     const presenceRef = ref(database, 'presence');
 
     const unsubscribe = onValue(presenceRef, (snapshot) => {

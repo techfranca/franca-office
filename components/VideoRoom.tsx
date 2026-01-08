@@ -111,7 +111,8 @@ export default function VideoRoom({ roomId, roomName, onLeave }: VideoRoomProps)
         },
         userInfo: {
           displayName: currentUser.name,
-          email: `${currentUser.id}@francaassessoria.com`,
+          email: currentUser.email || `${currentUser.id}@francaassessoria.com`,
+          avatarURL: currentUser.photoURL || undefined,
         },
         jwt: undefined,
       };

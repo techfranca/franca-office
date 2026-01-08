@@ -3,51 +3,38 @@
 "use client";
 
 import { useStore } from "@/lib/store";
-import { ROOMS, USERS, STATUS, UserId } from "@/lib/constants";
+import { ROOMS, USERS, STATUS, USER_INITIALS } from "@/lib/constants";
+import { getUserById } from "@/lib/users";
 import { LogOut, Globe, Lock } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useRouter } from "next/navigation";
 import StatusSelector from "./StatusSelector";
 import { usePresence } from "@/lib/usePresence";
 import { useRoomLock } from "@/lib/useRoomLock";
+import { useAuth } from "@/lib/useAuth";
 
 interface SidebarProps {
   onRoomSelect: (roomId: string) => void;
 }
 
-// Mapeamento de iniciais personalizadas
-const USER_INITIALS: Record<UserId, string> = {
-  gabriel: "GA",
-  bruna: "B",
-  guilherme: "GU",
-  leonardo: "L",
-  davidson: "D",
-};
-
 export default function Sidebar({ onRoomSelect }: SidebarProps) {
   const router = useRouter();
-  const { currentUser, currentRoom, logout } = useStore();
+  const { currentUser, currentRoom } = useStore();
   const { presenceByRoom } = usePresence();
+  const { signOut } = useAuth();
 
-  // ✨ Hook para verificar se sala privada está trancada
+  // Hook para verificar se sala privada está trancada
   const { lockState: privateRoomLock } = useRoomLock("reuniao-privada");
 
-  // ✅ LOGOUT CORRIGIDO (CLIENTE + SERVIDOR)
+  // Logout com Google Auth
   const handleLogout = async () => {
     if (!confirm("Deseja realmente sair do Franca Office?")) return;
 
     try {
-      // 1. Destroi cookie no servidor
-      await fetch("/api/auth/logout", {
-        method: "POST",
-      });
+      await signOut();
+      router.push("/login");
     } catch (error) {
-      console.error("Erro ao fazer logout no servidor:", error);
-    } finally {
-      // 2. Limpa estado local (Zustand)
-      logout();
-
-      // 3. Redireciona para login
+      console.error("Erro ao fazer logout:", error);
       router.push("/login");
     }
   };
@@ -58,8 +45,11 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
 
   if (!currentUser) return null;
 
-  const UserIcon =
-    Icons[USERS[currentUser.id].icon as keyof typeof Icons] as any;
+  // Obter ícone do usuário
+  const userConfig = USERS[currentUser.id];
+  const UserIcon = userConfig 
+    ? Icons[userConfig.icon as keyof typeof Icons] as any 
+    : null;
 
   return (
     <div className="w-64 bg-franca-navy h-screen flex flex-col text-white">
@@ -88,9 +78,25 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
       {/* Usuário */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-franca-green/20 rounded-lg flex items-center justify-center">
-            {UserIcon && (
+          {/* Avatar: mostra foto do Google ou ícone */}
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-franca-green/20">
+            {currentUser.photoURL ? (
+              <img 
+                src={currentUser.photoURL} 
+                alt={currentUser.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.parentElement!.innerHTML = 
+                    `<span class="text-franca-green font-bold">${USER_INITIALS[currentUser.id] || currentUser.name.charAt(0)}</span>`;
+                }}
+              />
+            ) : UserIcon ? (
               <UserIcon className="w-5 h-5 text-franca-green" />
+            ) : (
+              <span className="text-franca-green font-bold">
+                {USER_INITIALS[currentUser.id] || currentUser.name.charAt(0)}
+              </span>
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -174,22 +180,33 @@ export default function Sidebar({ onRoomSelect }: SidebarProps) {
                             presence.status as keyof typeof STATUS
                           ] || STATUS.available;
 
+                        // Tentar obter iniciais do usuário
                         const userInitials =
-                          USER_INITIALS[
-                            presence.userId as UserId
-                          ] || presence.userName.charAt(0);
+                          USER_INITIALS[presence.userId] || 
+                          presence.userName.charAt(0).toUpperCase();
 
                         return (
                           <div
                             key={presence.userId}
-                            className={`relative w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                            className={`relative w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 overflow-hidden ${
                               isActive
                                 ? "border-franca-green bg-franca-navy text-franca-green"
                                 : "border-franca-navy bg-franca-green text-franca-navy"
                             }`}
                             title={`${presence.userName} - ${userStatus.label}`}
                           >
-                            {userInitials}
+                            {presence.userPhoto ? (
+                              <img 
+                                src={presence.userPhoto} 
+                                alt={presence.userName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              userInitials
+                            )}
                             <span
                               className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-franca-navy"
                               style={{

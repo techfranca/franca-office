@@ -1,44 +1,58 @@
 // lib/constants.ts
 
+import { AUTHORIZED_USERS, getUserById } from './users';
+
 export const JITSI_DOMAIN = process.env.NEXT_PUBLIC_JITSI_DOMAIN || "meet.francaassessoria.com";
 
-export const USERS = {
-  gabriel: {
-    name: "Gabriel",
-    role: "CEO",
-    hasPassword: true,
-    icon: "Target",
-    color: "#7DE08D"
-  },
-  bruna: {
-    name: "Bruna",
-    role: "Social Media Manager",
-    hasPassword: true,
-    icon: "Instagram",
-    color: "#598F74"
-  },
-  guilherme: {
-    name: "Guilherme",
-    role: "Design Lead",
-    hasPassword: true,
-    icon: "Palette",
-    color: "#7DE08D"
-  },
-  leonardo: {
-    name: "Leonardo",
-    role: " Gestor de Tráfego",
-    hasPassword: true,
-    icon: "TrendingUp",
-    color: "#598F74"
-  },
-  davidson: {
-    name: "Davidson",
-    role: "Tech Lead",
-    hasPassword: true,
-    icon: "Code",
-    color: "#7DE08D"
-  }
-} as const;
+// Mapeamento de usuários para compatibilidade com código existente
+// Gera USERS dinamicamente a partir da whitelist
+function generateUsersFromWhitelist() {
+  const users: Record<string, {
+    name: string;
+    role: string;
+    hasPassword: boolean;
+    icon: string;
+    color: string;
+  }> = {};
+  
+  // Agrupa por ID único (evita duplicatas de emails alternativos)
+  const seenIds = new Set<string>();
+  
+  Object.values(AUTHORIZED_USERS).forEach(user => {
+    if (!seenIds.has(user.id)) {
+      seenIds.add(user.id);
+      users[user.id] = {
+        name: user.name,
+        role: user.role,
+        hasPassword: false, // Agora usa Google Auth
+        icon: user.icon,
+        color: user.color
+      };
+    }
+  });
+  
+  return users;
+}
+
+export const USERS = generateUsersFromWhitelist();
+
+// Gera mapeamento de iniciais
+function generateInitialsFromWhitelist() {
+  const initials: Record<string, string> = {};
+  
+  const seenIds = new Set<string>();
+  
+  Object.values(AUTHORIZED_USERS).forEach(user => {
+    if (!seenIds.has(user.id)) {
+      seenIds.add(user.id);
+      initials[user.id] = user.initials;
+    }
+  });
+  
+  return initials;
+}
+
+export const USER_INITIALS = generateInitialsFromWhitelist();
 
 export const ROOMS = [
   {
@@ -114,5 +128,5 @@ export const STATUS = {
 } as const;
 
 export type UserStatus = keyof typeof STATUS;
-export type UserId = keyof typeof USERS;
+export type UserId = string; // Agora é dinâmico baseado na whitelist
 export type RoomId = typeof ROOMS[number]["id"];

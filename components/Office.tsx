@@ -3,36 +3,29 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { ROOMS } from "@/lib/constants";
 import { useRoomLock } from "@/lib/useRoomLock";
+import AuthGuard from "./AuthGuard";
 import Sidebar from "./Sidebar";
 import VideoRoom from "./VideoRoom";
 import { X, Lock } from "lucide-react";
 
-export default function Office() {
-  const router = useRouter();
+function OfficeContent() {
   const { currentUser, currentRoom, joinRoom, leaveRoom } = useStore();
   
-  // ✨ NOVO: Estado para verificar trava da sala privada
+  // Estado para verificar trava da sala privada
   const [showLockedModal, setShowLockedModal] = useState(false);
   const [lockedByName, setLockedByName] = useState("");
   
   // Hook para verificar se sala privada está trancada
   const { lockState: privateRoomLock } = useRoomLock("reuniao-privada");
 
-  // Redirecionar se não estiver logado
-  if (!currentUser) {
-    router.push("/login");
-    return null;
-  }
-
   const handleJoinRoom = (roomId: string) => {
     const room = ROOMS.find((r) => r.id === roomId);
     if (!room) return;
 
-    // ✨ NOVO: Verificar se é sala privada e está trancada
+    // Verificar se é sala privada e está trancada
     if (room.isPrivate && roomId === "reuniao-privada") {
       if (privateRoomLock.locked) {
         // Mostrar modal informando que está trancada
@@ -49,6 +42,8 @@ export default function Office() {
   const handleLeaveRoom = () => {
     leaveRoom();
   };
+
+  if (!currentUser) return null;
 
   return (
     <div className="flex h-screen bg-gray-900">
@@ -84,17 +79,22 @@ export default function Office() {
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">
-                Bem-vindo ao Franca Office
+                Bem-vindo ao Franca Office, {currentUser.name}!
               </h2>
               <p className="text-gray-400">
                 Selecione uma sala na barra lateral para começar
               </p>
+              {currentUser.email && (
+                <p className="text-gray-500 text-sm mt-2">
+                  Logado como {currentUser.email}
+                </p>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* ✨ NOVO: Modal Sala Trancada */}
+      {/* Modal Sala Trancada */}
       {showLockedModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
@@ -140,5 +140,13 @@ export default function Office() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Office() {
+  return (
+    <AuthGuard>
+      <OfficeContent />
+    </AuthGuard>
   );
 }
