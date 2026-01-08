@@ -66,7 +66,7 @@ export function useAuth() {
           });
         } else {
           // Email não autorizado - fazer logout
-          await firebaseSignOut(auth);
+          if (auth) await firebaseSignOut(auth);
           setAuthState({
             firebaseUser: null,
             userProfile: null,
@@ -105,7 +105,7 @@ export function useAuth() {
       const email = result.user.email;
       
       if (!email) {
-        await firebaseSignOut(auth);
+        if (auth) await firebaseSignOut(auth);
         return { success: false, error: 'Não foi possível obter o email da conta' };
       }
       
@@ -113,7 +113,7 @@ export function useAuth() {
       const profile = getUserByEmail(email);
       
       if (!profile) {
-        await firebaseSignOut(auth);
+        if (auth) await firebaseSignOut(auth);
         return { 
           success: false, 
           error: `O email ${email} não está autorizado a acessar o Franca Office.` 
